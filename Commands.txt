@@ -1,0 +1,11 @@
+fup = Upload
+	fup name remoteparent
+
+del = Delete
+	del remotepath
+
+list = List
+	list 	remotepath
+
+valid = Validate
+	valid remotepath

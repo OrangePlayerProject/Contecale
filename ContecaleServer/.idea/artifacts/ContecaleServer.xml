@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="ContecaleServer">
+    <output-path>$PROJECT_DIR$/bin/</output-path>
+    <root id="archive" name="ContecaleServer.jar">
+      <element id="module-output" name="ContecaleServer" />
+      <element id="file-copy" path="$PROJECT_DIR$/../../MuPlayer/bin/MuPlayer.jar" />
+      <element id="file-copy" path="$PROJECT_DIR$/../ContecaleCommon/bin/ContecaleCommon.jar" />
+    </root>
+  </artifact>
+</component>
