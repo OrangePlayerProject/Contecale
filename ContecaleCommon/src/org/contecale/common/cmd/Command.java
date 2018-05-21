@@ -48,6 +48,10 @@ public class Command {
         return hasOptions() ? listOptions.get(index) : null;
     }
 
+    public void setOption(int index, String newOption) {
+        listOptions.set(index, newOption);
+    }
+
     public List<String> getListOptions(){
         return listOptions;
     }

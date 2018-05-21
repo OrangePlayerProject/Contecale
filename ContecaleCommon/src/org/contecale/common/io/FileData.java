@@ -36,4 +36,14 @@ public class FileData {
     public void setData(byte[] data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return new StringBuilder()
+                .append(name).append(' ')
+                .append(parent).append(' ')
+                .append("DataLenght: ")
+                .append((data == null ? 0 : data.length)).toString();
+    }
+
 }

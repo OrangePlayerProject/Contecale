@@ -5,6 +5,7 @@
  */
 package org.contecale.common.io.streams;
 
+import com.sun.org.apache.bcel.internal.generic.NOP;
 import org.contecale.common.io.ByteBuffer;
 
 import java.io.DataInputStream;
@@ -12,96 +13,123 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
+import static org.contecale.common.io.streams.StreamKey.*;
+
+
 /**
  *
  * @author martin
  */
-public class ContecaleInputStream extends DataInputStream{
+public class ContecaleInputStream extends InputStream{
 
-    //private final Encryptor encryptor;
-    private final StreamBuffer streamBuffer;
-    private static final short BUFF_SIZE = 1024;
-    
-    public ContecaleInputStream(InputStream in) {
-        super(in);
-        //this.encryptor = new Encryptor();
-        streamBuffer = new StreamBuffer();
-    }
-    
-    private void addBytes(byte[] array, StringBuilder sbStr){
-        byte b;
-        
-        for(int i = 0; i < array.length && (b = array[i]) != 0; i++)
-            sbStr.append((char)b);
-    }
-    
-    private Byte[] getAvailableBytes(byte[] array){
-        ArrayList<Byte> listBytes = new ArrayList<>();
-        
-        byte b;
-        for(int i = 0; i < array.length && (b = array[i]) != 0; i++)
-            listBytes.add(b);
-        
-        return (Byte[])listBytes.toArray();
-    }
+    private InputStream socketStream;
 
-    private int getBuffSize(int bytesAvailable){
-        if (bytesAvailable <= BUFF_SIZE)
-            return bytesAvailable;
-        else{
-            int bigThat = bytesAvailable/BUFF_SIZE;
-            return bigThat <= 10 ? bytesAvailable : BUFF_SIZE*10;
-        }
+    public ContecaleInputStream(InputStream socketStream) {
+        this.socketStream = socketStream;
     }
     
-    private void waitForData() throws IOException{
+    /*private void waitForData() throws IOException{
         while(!hasData());
     }
-    
-    private void waitForData(long millis) throws IOException{
-        final long ti = System.currentTimeMillis();
-        while (!hasData())
-            if (System.currentTimeMillis()-ti >= millis)
-                break;
-    }
-    
+
     public boolean hasData() throws IOException{
         return available() > 0;
+    }*/
+
+    private int readIntData() throws IOException {
+        byte lenInt = (byte) read();
+        byte[] buffer = new byte[lenInt];
+        for (int i = 0; i < lenInt; i++)
+            buffer[i] = (byte) read();
+        return Integer.parseInt(new String(buffer));
     }
+
+    private byte[] readPackages(int packages) throws IOException {
+        boolean hasResidue = (byte)read() == HASRES;
+        int residue = 0;
+
+        if (hasResidue)
+            residue = readIntData();
+
+        ByteBuffer buffer = new ByteBuffer(BUFFSIZE*packages+residue);
+
+        for (int i = 0; i < packages*BUFFSIZE; i++)
+            buffer.add(read());
+
+        if (residue > 0)
+            for (int i = 0; i < residue; i++)
+                buffer.add(read());
+
+        return buffer.getAndClear();
+    }
+
     
     public String readString() throws IOException {
-        waitForData();
-        int bufferSize = getBuffSize(available());
-        //System.out.println("BufferSize: "+bufferSize);
-        byte[] bytes = new byte[bufferSize];
-
-        // Calcular las vueltas del for de acuerdo a cuantas veces lee n bytes.
-        while (hasData()){
-            read(bytes);
-            streamBuffer.addBytes(bytes);
-            bytes = new byte[bufferSize];
-        }
-        //System.out.println("Cantidad de datos del buffer: "+streamBuffer.getBufferSize());
-        String msg = streamBuffer.getAllBytes();
-        //System.out.println("String del buffer: "+msg);
-        //return encryptor.decrypt(msg);
-        return msg;
+        return new String(readBytes());
     }
 
-
-
     public byte[] readBytes() throws IOException {
-        waitForData();
-        //System.out.println("BufferSize: "+bufferSize);
-        ByteBuffer buffer = new ByteBuffer(4096);
+        int read = read();
+        byte[] buff = null;
+        if (read != EOF) {
+            byte packages = (byte) read;
+            if (packages == NOPKG) {
+                int buffLen = readIntData();
+                buff = new byte[buffLen];
 
-        // Calcular las vueltas del for de acuerdo a cuantas veces lee n bytes.
-        while (hasData())
-            buffer.add(read());
-        //System.out.println("Cantidad de datos del buffer: "+streamBuffer.getBufferSize());
-        //System.out.println("String del buffer: "+msg);
-        //return encryptor.decrypt(msg);
-        return buffer.getAndClear();
+                for (int i = 0; i < buffLen; i++)
+                    buff[i] = (byte) read();
+            }
+            else {
+                buff = readPackages(packages);
+            }
+        }
+        return buff;
+    }
+
+    @Override
+    public int read() throws IOException {
+        return socketStream.read();
+    }
+
+    @Override
+    public int read(byte[] b) throws IOException {
+        return socketStream.read(b);
+    }
+
+    @Override
+    public int read(byte[] b, int off, int len) throws IOException {
+        return socketStream.read(b, off, len);
+    }
+
+    @Override
+    public long skip(long n) throws IOException {
+        return socketStream.skip(n);
+    }
+
+    @Override
+    public int available() throws IOException {
+        return socketStream.available();
+    }
+
+    @Override
+    public void close() throws IOException {
+        socketStream.close();
+    }
+
+    @Override
+    public synchronized void mark(int readlimit) {
+        socketStream.mark(readlimit);
+    }
+
+    @Override
+    public synchronized void reset() throws IOException {
+        socketStream.reset();
+    }
+
+    @Override
+    public boolean markSupported() {
+        return socketStream.markSupported();
     }
 
 }
