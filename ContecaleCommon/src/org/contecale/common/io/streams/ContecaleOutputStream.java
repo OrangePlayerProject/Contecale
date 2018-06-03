@@ -34,56 +34,52 @@ public class ContecaleOutputStream extends OutputStream{
         return String.valueOf(lenght).getBytes();
     }
 
-    private void writeIntData(int data) throws IOException {
-        String strInt = lenToString(data);
-        write(strInt.length());
-        write(strInt.getBytes());
+    private void writeIntData(int data, ByteBuffer buffer) throws IOException {
+        String lenStr = lenToString(data);
+        buffer.add(HASRES);
+        buffer.add(lenStr.length());
+        buffer.addFrom(lenStr.getBytes());
+        System.err.println("LenStr: "+lenStr);
+        System.err.println("Len: "+lenStr.length());
 
     }
 
     private void writeData(final byte[] data) throws IOException {
-        int len = data.length;
-        byte[] lenBytes = lenghtToBytes(len);
-        if (len > BUFFSIZE) {
-            int packets = len / BUFFSIZE;
-            int residue = len % BUFFSIZE;
-            boolean hasResidue = residue > 0;
+        int dataLen = data.length;
+        System.err.println("WriteDataAvailable: "+dataLen);
+        ByteBuffer buffer = new ByteBuffer();
+        if (dataLen > BUFFSIZE) {
+            final int packets = dataLen / BUFFSIZE;
+            final int residue = dataLen % BUFFSIZE;
+
+            buffer.add(packets);
+            if (residue > 0)
+                writeIntData(residue, buffer);
+            else
+                buffer.add(NORES);
+            write(buffer.drain());
+
+            ByteBuffer dataBuff = new ByteBuffer(data);
 
 
-            // Revisar que numeros estaran llegando
-            write(packets);
-            write(hasResidue ? HASRES : NORES);
-            if (hasResidue)
-                writeIntData(residue);
+            for (int i = 0; i < packets; i++)
+                write(dataBuff.read(i*BUFFSIZE, BUFFSIZE));
 
-            ByteBuffer buffer = new ByteBuffer(data);
-            byte[] sendBuffer = new byte[BUFFSIZE];
-
-            for (int i = 0; i < packets; i++) {
-                buffer.read(sendBuffer, i*BUFFSIZE, BUFFSIZE);
-                write(sendBuffer);
-            }
-            if (residue > 0) {
-                sendBuffer = new byte[residue];
-                buffer.read(sendBuffer, packets*BUFFSIZE, residue);
-                write(sendBuffer);
-            }
-
+            if (residue > 0)
+                write(dataBuff.read(packets*BUFFSIZE));
         }
         else {
             write(NOPKG);
-            writeIntData(len);
             write(data);
         }
+
     }
 
     public void writeString(final String str) throws IOException {
-        //write('s');
         writeData(str.getBytes());
     }
 
     public void writeBytes(final byte[] data) throws IOException {
-        //write('b');
         writeData(data);
     }
 

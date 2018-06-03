@@ -21,5 +21,9 @@ public class Server {
         listClients.add(client);
     }
 
+    public static void main(String[] args) {
+
+    }
+
 
 }

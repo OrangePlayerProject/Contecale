@@ -41,50 +41,51 @@ public class ContecaleInputStream extends InputStream{
         byte[] buffer = new byte[lenInt];
         for (int i = 0; i < lenInt; i++)
             buffer[i] = (byte) read();
-        return Integer.parseInt(new String(buffer));
+        int lenToInt = Integer.parseInt(new String(buffer));
+        System.out.println("LenToInt: "+lenInt);
+        return lenInt;
     }
 
-    private byte[] readPackages(int packages) throws IOException {
-        boolean hasResidue = (byte)read() == HASRES;
-        int residue = 0;
+    private byte[] readData() throws IOException {
+        int available = available();
+        System.err.println("ReadDataAvailable: "+available);
+        ByteBuffer buffer = new ByteBuffer(available);
+        byte firstCode = (byte) read();
+        System.out.println("FirstCode: "+firstCode);
 
-        if (hasResidue)
-            residue = readIntData();
+        // Hay mas de un paquete
+        if (firstCode > 0) {
+            // despues cambiar por una revision de un numero residue mas grande
+            boolean hasResidue = ((byte) read()) == HASRES;
+            int residue = 0;
+            if (hasResidue)
+                residue = readIntData();
 
-        ByteBuffer buffer = new ByteBuffer(BUFFSIZE*packages+residue);
-
-        for (int i = 0; i < packages*BUFFSIZE; i++)
-            buffer.add(read());
-
-        if (residue > 0)
-            for (int i = 0; i < residue; i++)
+            int recvSize = firstCode*BUFFSIZE;
+            for (int i = 0; i < recvSize; i++)
                 buffer.add(read());
-
-        return buffer.getAndClear();
+            if (residue > 0)
+                for (int i = 0; i < residue; i++)
+                    buffer.add(read());
+        }
+        else {
+            for(;;) {
+                try {
+                    buffer.add(read());
+                } catch (IOException e) {
+                    break;
+                }
+            }
+        }
+        return buffer.drain();
     }
-
     
     public String readString() throws IOException {
-        return new String(readBytes());
+        return new String(readData());
     }
 
     public byte[] readBytes() throws IOException {
-        int read = read();
-        byte[] buff = null;
-        if (read != EOF) {
-            byte packages = (byte) read;
-            if (packages == NOPKG) {
-                int buffLen = readIntData();
-                buff = new byte[buffLen];
-
-                for (int i = 0; i < buffLen; i++)
-                    buff[i] = (byte) read();
-            }
-            else {
-                buff = readPackages(packages);
-            }
-        }
-        return buff;
+        return readData();
     }
 
     @Override

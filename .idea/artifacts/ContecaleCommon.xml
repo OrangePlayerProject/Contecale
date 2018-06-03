@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="ContecaleCommon">
+    <output-path>$PROJECT_DIR$/ContecaleCommon/bin/</output-path>
+    <root id="archive" name="ContecaleCommon.jar">
+      <element id="module-output" name="ContecaleCommon" />
+    </root>
+  </artifact>
+</component>

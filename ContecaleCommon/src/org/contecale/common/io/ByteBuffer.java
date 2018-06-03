@@ -20,7 +20,7 @@ public class ByteBuffer implements RandomAccess, Cloneable, Serializable {
     private int size;
     private int capacity;
 
-    private static final int DEFAULT_CAPACITY = 1024;
+    private static final int DEFAULT_CAPACITY = 10240;
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE-8;
 
     private static final int MAX_CAPACITY = 1024*1024*50;
@@ -150,8 +150,13 @@ public class ByteBuffer implements RandomAccess, Cloneable, Serializable {
     }
 
     public byte[] drain(){
+        return drain(DEFAULT_CAPACITY);
+    }
+
+    public byte[] drain(int newCapacity) {
         byte[] bytes = toArray();
-        array = new byte[DEFAULT_CAPACITY];
+        array = new byte[newCapacity];
+        capacity = array.length;
         size = 0;
         return bytes;
     }
@@ -159,6 +164,7 @@ public class ByteBuffer implements RandomAccess, Cloneable, Serializable {
     public byte[] getAndClear() {
         byte[] bytes = toArray();
         array = null;
+        capacity = 0;
         size = 0;
         return bytes;
     }
